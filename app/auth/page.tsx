@@ -17,9 +17,12 @@ export default function AuthPage() {
     // TODO: 実際の認証API呼び出し
     console.log(isLogin ? "ログイン" : "サインアップ", { email, password });
 
-    // 仮の処理: 1秒後にレポート一覧へ遷移
+    // 仮の処理: 認証状態をlocalStorageに保存
+    localStorage.setItem("isAuthenticated", "true");
+
+    // 仮の処理: 1秒後にホームページへ遷移
     setTimeout(() => {
-      router.push("/reports");
+      router.push("/");
     }, 1000);
   };
 

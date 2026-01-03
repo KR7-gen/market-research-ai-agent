@@ -126,7 +126,7 @@ export default function ProgressPage() {
   const handleStop = () => {
     console.log("実行を中断");
     if (confirm("実行を中断しますか？途中成果は保持されます。")) {
-      router.push("/reports");
+      router.push("/");
     }
   };
 

@@ -67,29 +67,76 @@ export default function NewReportPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log("handleSubmit called - ボタンがクリックされました");
     e.preventDefault();
+    console.log("preventDefault executed");
     setIsSubmitting(true);
+    console.log("isSubmitting set to true");
 
-    // TODO: API呼び出しを実装
-    const reportData = {
-      theme,
-      purpose: customPurpose || purpose,
-      region,
-      period,
-      assumptions,
-      focus_points: focusPoints,
-      source_priority: sourcePriority,
-      auto_fallback: autoFallback,
-    };
+    try {
+      // 1. 通信確認用: /api/health へのGETリクエスト
+      console.log("[通信確認] /api/health へのGETリクエストを送信します...");
+      const healthResponse = await fetch("/api/health");
+      console.log("[通信確認] /api/health レスポンス:", {
+        status: healthResponse.status,
+        ok: healthResponse.ok,
+      });
+      const healthData = await healthResponse.json();
+      console.log("[通信確認] /api/health データ:", healthData);
 
-    console.log("レポート作成リクエスト:", reportData);
+      // 2. レポート作成: POST /api/reports
+      const reportData = {
+        theme_text: theme,
+        purpose: customPurpose || purpose || null,
+        region: region || null,
+        period: period || null,
+        assumptions: assumptions || null,
+        focus_points: focusPoints.length > 0 ? focusPoints : null,
+        source_priority: sourcePriority,
+        auto_fallback: autoFallback,
+      };
 
-    // 仮の処理: 2秒後に進捗画面に遷移
-    setTimeout(() => {
-      // router.push("/reports/1/progress");
-      alert("レポート生成を開始しました（デモ）");
+      console.log("[レポート作成] POST /api/reports へのリクエストを送信します...");
+      console.log("[レポート作成] リクエストデータ:", reportData);
+
+      const response = await fetch("/api/reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(reportData),
+      });
+
+      console.log("[レポート作成] レスポンス:", {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("[レポート作成] エラーレスポンス:", errorData);
+        alert(`レポート作成に失敗しました: ${errorData.error || response.statusText}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const result = await response.json();
+      console.log("[レポート作成] 成功レスポンス:", result);
+
+      // 成功時は進捗画面に遷移
+      if (result.reportId) {
+        console.log(`[レポート作成] レポートID: ${result.reportId} で進捗画面に遷移します`);
+        router.push(`/reports/${result.reportId}/progress`);
+      } else {
+        alert("レポート生成を開始しました");
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error("[レポート作成] エラーが発生しました:", error);
+      alert(`エラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
       setIsSubmitting(false);
-    }, 2000);
+    }
   };
 
   return (

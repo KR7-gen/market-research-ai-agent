@@ -170,13 +170,16 @@ export default function HomePage() {
                             </div>
 
                             {report.status === "failed" && (
-                              <Link
-                                href={`/reports/${report.id}/progress`}
-                                onClick={(e) => e.stopPropagation()}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  router.push(`/reports/${report.id}/progress`);
+                                }}
                                 className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
                               >
                                 再開
-                              </Link>
+                              </button>
                             )}
 
                             <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

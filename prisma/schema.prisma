@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// レポート本体
+model Report {
+  id          String   @id @default(uuid())
+  status      String   // queued, running, completed, failed
+  userId      String   @default("dummy-user") // 仮ユーザー（後で認証実装時に差し替え）
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+
+  // リレーション
+  inputs   ReportInput[]
+  sections Section[]
+  jobs     Job[]
+
+  @@index([userId, status])
+  @@index([status])
+}
+
+// レポート入力パラメータ
+model ReportInput {
+  id            String   @id @default(uuid())
+  reportId      String
+  themeText     String   // 必須
+  purpose       String?
+  region        String?
+  period        String?
+  assumptions   String?
+  focusPoints   String?
+  sourcePriority String?
+  createdAt     DateTime @default(now())
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+// 章
+model Section {
+  id          String   @id @default(uuid())
+  reportId    String
+  orderNo     Int      // 1-8
+  title       String
+  status      String   // planned, collecting, drafting, completed, failed
+  content     String?  // ②以降で実装
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  report    Report     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  evidences Evidence[]
+  citations Citation[]
+
+  @@unique([reportId, orderNo])
+  @@index([reportId])
+  @@index([reportId, status])
+}
+
+// 根拠（evidence）
+model Evidence {
+  id          String   @id @default(uuid())
+  sectionId   String
+  sourceType  String   // internal, youtube, web
+  sourceUrl   String?
+  content     String?  // ②以降で実装
+  createdAt   DateTime @default(now())
+
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+// 引用（citation）
+model Citation {
+  id          String   @id @default(uuid())
+  sectionId   String
+  evidenceId  String?
+  position    Int      // セクション内での位置
+  text        String?  // ②以降で実装
+  createdAt   DateTime @default(now())
+
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+// ジョブ
+model Job {
+  id        String   @id @default(uuid())
+  reportId  String
+  status    String   // queued, running, completed, failed
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  startedAt DateTime?
+  completedAt DateTime?
+
+  report      Report      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  jobEvents   JobEvent[]
+
+  @@index([reportId])
+  @@index([status])
+}
+
+// ジョブイベント（ログ）
+model JobEvent {
+  id              String   @id @default(uuid())
+  jobId           String
+  reportId        String
+  eventType       String   // info, error, progress
+  messageUser     String   // ユーザー向けメッセージ
+  messageInternal String?  // 内部向けメッセージ（デバッグ用）
+  createdAt       DateTime @default(now())
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([reportId])
+  @@index([createdAt])
+}
